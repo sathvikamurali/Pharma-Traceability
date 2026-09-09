@@ -150,11 +150,13 @@ Pharma-Traceability/
 ├── lib/
 │   ├── api-client-react/
 │   ├── api-spec/
+│   │   └── openapi.yaml
 │   ├── api-zod/
 │   └── db/
+│       └── src/
+│           └── schema/
 │
 ├── scripts/
-│
 ├── attached_assets/
 │
 ├── package.json
