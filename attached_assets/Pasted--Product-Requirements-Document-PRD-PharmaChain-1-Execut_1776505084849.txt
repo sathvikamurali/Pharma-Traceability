@@ -1,0 +1,106 @@
+# Product Requirements Document (PRD): PharmaChain
+
+## 1. Executive Summary
+**PharmaChain** is a decentralized, blockchain-based pharmaceutical supply chain tracking system designed to ensure the authenticity, safety, and traceability of drugs from manufacturing to the end consumer. The core problem it addresses is the infiltration of counterfeit or tampered medicines into the supply chain, which poses severe health risks and financial losses. By recording every handoff on a private/consortium blockchain, PharmaChain creates a tamper-proof, publicly verifiable ledger. 
+
+The system utilizes MetaMask for identity and wallet management, Sepolia for scalable and cost-effective smart contract execution, and IPFS (via Pinata) for decentralized storage of large metadata. This architecture ensures that while the blockchain remains lightweight and efficient, all critical drug data is securely stored and cryptographically linked to the on-chain records.
+
+## 2. Objectives and Goals
+*   **Traceability:** Provide end-to-end visibility of a drug's journey from the manufacturer till the customer .
+*   **Authenticity:** Enable consumers to verify the legitimacy of their medicines via a simple QR code scan.
+*   **Immutability:** Ensure that once a record is created (e.g., batch registration, transfer of ownership), it cannot be altered retroactively.
+*   **Security:** Implement robust role-based access control (RBAC) and cryptographic verification at every handoff point.
+*   **Scalability & Cost-Efficiency:** Utilize Layer 2 solutions (Sepolia) and decentralized storage (IPFS) to manage transaction costs and data storage efficiently.
+
+## 3. Target Audience and User Roles
+The system caters to four primary user roles, each with distinct permissions and interfaces, authenticated via MetaMask:
+
+1.  **Admin (Regulatory Authority/System Owner):**
+    *   Highest level of authority with a bird's-eye view of the entire pipeline.
+    *   Responsible for onboarding and approving Manufacturers.
+    *   Can generate unique, downloadable QR codes for Manufacturer identity verification.
+    *   Monitors system metrics (e.g., number of registered manufacturers, total batches).
+2.  **Manufacturer:**
+    *   Registers new drug batches with detailed metadata (Name, Expiry, Composition, Storage conditions).
+    *   Registers and approves Distributors.
+    *   Transfers drug batches to Distributors.
+    *   Generates QR codes for Distributors to verify their identity during handoffs.
+3.  **Distributor:**
+    *   Receives, Accepts ( A way to accept ) and verifies drug batches from Manufacturers.
+    *   Registers and approves Pharmacies.
+    *   Transfers drug batches to Pharmacies.
+    *   Maintains a view of successfully transferred inventory.
+4.  **Pharmacy:**
+    *   Receives and verifies drug batches from Distributors.
+    *   Manages current stock and inventory.
+    *   Sells drugs to Consumers, marking the end of the supply chain journey.
+5.  **Consumer (End User):**
+    *   Does not require MetaMask for basic verification.
+    *   Scans the QR code on the drug packaging to view the complete, authenticated journey of the medicine.
+
+## 4. System Architecture and Tech Stack
+The architecture is designed to balance decentralization, security, and performance.
+
+*   **Frontend:** React.js (or Next.js) for a responsive and professional looking the  user interface.
+*   **Web3 Integration:** Ethers.js for blockchain interactions and MetaMask for wallet/identity management.
+*   **Smart Contracts:** Solidity, deployed on ** Sepolia** (Layer 2 testnet) via **Alchemy** (RPC provider).
+*   **Storage Layer:**
+    *   **Hot Storage:** IPFS via **Pinata** for active drug metadata. Ensures high availability.
+    *   **Cold Storage:** Pinata tagging/archival (mimicking Filecoin) for permanent, cheap storage of old batch records.
+*   **Data Flow:** Drug metadata is uploaded to IPFS. The resulting Content Identifier (CID) is then stored on the blockchain, acting as a cryptographic fingerprint.
+
+## 5. Core Features and User Flows
+
+### 5.1 Authentication and Role Routing
+*   **Flow:** User lands on the homepage and clicks "Connect Wallet". MetaMask prompts for signature. The smart contract verifies the wallet address against registered roles and routes the user to their respective dashboard (Admin, Manufacturer, Distributor, Pharmacy).
+*   **Security:** Prevents unauthorized access. Only the Admin is hardcoded or elected via consensus (e.g., Proof of Authority - PoA) initially.
+
+### 5.2 Admin Dashboard
+*   **Manufacturer Onboarding:** Admin adds a Manufacturer's wallet address to the smart contract. 
+*   **Consensus Mechanism (PoA):** For enhanced security, adding a Manufacturer could require multi-signature approval from a consortium of Admins (e.g., 2 out of 3 Admins must approve).
+*   **Identity QR Generation:** Admin generates a downloadable QR code containing the Manufacturer's verified public key and identity claims.
+*   **Global Pipeline View:** Dashboard displaying analytics (total drugs, active manufacturers, flagged anomalies).
+
+### 5.3 Manufacturer Operations
+*   **Batch Registration:** Manufacturer enters drug details (Name, Expiry, Quantity, Composition, Storage: Hot/Cold). This data is pinned to IPFS. The CID and a unique Batch ID are recorded on-chain.
+*   **Distributor Onboarding:** Manufacturer registers a Distributor's wallet address.A manufacter can send a batch to multiple distributors.Dor example we have 500 units the manufacter can send 200 units to distributor A and 300 units to distributor B.
+*   **Transfer of Ownership:** Manufacturer initiates a transfer to a Distributor. The transaction is signed via MetaMask.
+*   **Handoff Verification:** Manufacturer generates a dynamic QR code for the specific batch transfer. The Distributor scans this to confirm receipt and accept ownership on-chain.
+
+### 5.4 Distributor and Pharmacy Operations
+*   **Inventory Management:** Both roles have a "My Stock" section displaying current holdings and successful transfers.
+*   **Downward Handoff:** Similar to the Manufacturer-Distributor flow, Distributors register Pharmacies and transfer batches using signed transactions and QR verifications.
+*   **Pharmacy Sale:** When a drug is sold, the Pharmacy updates the status on-chain to "Sold/Consumed", preventing the same QR code from being reused elsewhere.
+
+### 5.5 Consumer Verification (The "Trust" Layer)
+*   **Flow:** Consumer scans the QR code on the medicine box using a standard smartphone camera or the PharmaChain web app.
+*   **Data Retrieval:** The app reads the Batch ID/CID from the QR code, queries the Sepolia blockchain for the transaction history, and fetches the metadata from IPFS.
+*   **UI Display:** A beautiful, timeline-based UI shows the drug's journey: Factory → Distributor → Pharmacy, including timestamps and verified entities.
+
+## 6. Security and Blockchain Best Practices
+
+To meet the requirement for heightened security, the following patterns must be implemented:
+
+### 6.1 Smart Contract Security
+*   **Role-Based Access Control (RBAC):** Utilize OpenZeppelin's `AccessControl` to strictly define who can call specific functions (e.g., `onlyAdmin`, `onlyManufacturer`).
+*   **Pausability:** Implement a circuit breaker (`Pausable`) to halt operations in case a vulnerability is discovered.
+*   **Reentrancy Guards:** Use `ReentrancyGuard` on all state-changing functions, especially those involving transfers, to prevent reentrancy attacks.
+*   **Upgradability:** Consider using proxy patterns (e.g., UUPS) to allow smart contract upgrades without losing state, crucial for long-term supply chain systems.
+
+### 6.2 QR Code Security and Anti-Counterfeiting
+*   **Dynamic QR Codes:** Static QR codes can be easily copied. PharmaChain should use dynamic QR codes for handoffs. The QR code should contain a unique, time-sensitive challenge (nonce) signed by the sender's private key.
+*   **Status Invalidation:** Once a drug is marked as "Sold" by the Pharmacy, scanning the QR code should display a warning that the drug has already been dispensed, preventing empty box reuse.
+
+### 6.3 Data Privacy and Storage
+*   **IPFS Encryption:** While IPFS is public, sensitive proprietary data (e.g., exact chemical formulations) should be encrypted before uploading to IPFS. Only authorized parties with the decryption key can read it. The blockchain only stores the hash of the encrypted data.
+
+## 7. Non-Functional Requirements
+*   **UI/UX:** The frontend must be highly intuitive. Complex blockchain interactions (signing transactions, waiting for block confirmations) should be abstracted with clear loading states, toast notifications, and a modern design system (e.g., Tailwind CSS, Framer Motion for animations).
+*   **Performance:** IPFS retrieval should be fast (Hot Storage). Blockchain reads should be near-instant via Alchemy RPC.
+*   **Testing:** The system must include a mechanism to generate "fake" wallet IDs and public keys (e.g., using Hardhat or Foundry local nodes) to simulate the entire pipeline and allocate roles for testing and demonstration purposes.
+
+## 8. Things to try 
+
+*   **Tokenomics/Incentives:** Introduce a utility token to reward actors for maintaining high data quality or reporting counterfeit attempts.
+
+---

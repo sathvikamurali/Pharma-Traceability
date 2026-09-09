@@ -1,0 +1,389 @@
+openapi: 3.1.0
+info:
+  # Do not change the title, if the title changes, the import paths will be broken
+  title: Api
+  version: 0.1.0
+  description: PharmaChain API specification
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: pharmachain
+    description: PharmaChain supply chain operations
+
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      description: Returns server health status
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+
+  /pharmachain/metadata:
+    post:
+      operationId: uploadBatchMetadata
+      tags: [pharmachain]
+      summary: Upload drug batch metadata to IPFS
+      description: Uploads batch metadata to IPFS via Pinata and returns the CID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UploadMetadataBody"
+      responses:
+        "201":
+          description: Metadata uploaded successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UploadMetadataResponse"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /pharmachain/metadata/{cid}:
+    get:
+      operationId: getBatchMetadata
+      tags: [pharmachain]
+      summary: Fetch batch metadata from IPFS
+      parameters:
+        - name: cid
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Metadata retrieved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BatchMetadata"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /pharmachain/verify/{batchId}:
+    get:
+      operationId: verifyBatch
+      tags: [pharmachain]
+      summary: Consumer verification - full supply chain journey
+      description: Returns the complete authenticated journey of a drug batch for consumers
+      parameters:
+        - name: batchId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Verification result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VerificationResult"
+        "404":
+          description: Batch not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /pharmachain/qr:
+    post:
+      operationId: generateQrCode
+      tags: [pharmachain]
+      summary: Generate a QR code
+      description: Generate a downloadable QR code for identity verification or batch tracking
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/QrGenerateBody"
+      responses:
+        "200":
+          description: QR code generated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QrCodeResponse"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /pharmachain/stats:
+    get:
+      operationId: getSystemStats
+      tags: [pharmachain]
+      summary: Get global system statistics
+      description: Returns aggregate statistics for the PharmaChain system
+      responses:
+        "200":
+          description: System stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SystemStats"
+
+  /pharmachain/events/{batchId}:
+    get:
+      operationId: getBatchEvents
+      tags: [pharmachain]
+      summary: Get supply chain events for a batch
+      description: Returns the full list of supply chain events recorded on-chain for a specific batch
+      parameters:
+        - name: batchId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Supply chain events
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SupplyChainEvent"
+        "404":
+          description: Batch not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+components:
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+        - status
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
+
+    BatchMetadata:
+      type: object
+      properties:
+        name:
+          type: string
+        expiryDate:
+          type: string
+        quantity:
+          type: integer
+        composition:
+          type: string
+        storageCondition:
+          type: string
+          enum: [Hot, Cold, Room Temperature]
+        manufacturerAddress:
+          type: string
+        batchId:
+          type: string
+        uploadedAt:
+          type: string
+        cid:
+          type: ["string", "null"]
+      required:
+        - name
+        - expiryDate
+        - quantity
+        - composition
+        - storageCondition
+        - manufacturerAddress
+        - batchId
+
+    UploadMetadataBody:
+      type: object
+      properties:
+        name:
+          type: string
+        expiryDate:
+          type: string
+        quantity:
+          type: integer
+        composition:
+          type: string
+        storageCondition:
+          type: string
+          enum: [Hot, Cold, Room Temperature]
+        manufacturerAddress:
+          type: string
+        batchId:
+          type: string
+      required:
+        - name
+        - expiryDate
+        - quantity
+        - composition
+        - storageCondition
+        - manufacturerAddress
+        - batchId
+
+    UploadMetadataResponse:
+      type: object
+      properties:
+        cid:
+          type: string
+        ipfsUrl:
+          type: string
+        pinataUrl:
+          type: string
+      required:
+        - cid
+        - ipfsUrl
+        - pinataUrl
+
+    SupplyChainEvent:
+      type: object
+      properties:
+        eventType:
+          type: string
+          enum: [Registered, Transferred, Accepted, Sold]
+        fromAddress:
+          type: ["string", "null"]
+        toAddress:
+          type: string
+        timestamp:
+          type: integer
+        batchId:
+          type: string
+        transactionHash:
+          type: ["string", "null"]
+        roleName:
+          type: string
+      required:
+        - eventType
+        - toAddress
+        - timestamp
+        - batchId
+        - roleName
+
+    VerificationResult:
+      type: object
+      properties:
+        batchId:
+          type: string
+        metadata:
+          $ref: "#/components/schemas/BatchMetadata"
+        events:
+          type: array
+          items:
+            $ref: "#/components/schemas/SupplyChainEvent"
+        currentStatus:
+          type: string
+          enum: [Active, Sold, Recalled]
+        currentHolder:
+          type: string
+        currentHolderRole:
+          type: string
+        isAuthentic:
+          type: boolean
+      required:
+        - batchId
+        - metadata
+        - events
+        - currentStatus
+        - currentHolder
+        - currentHolderRole
+        - isAuthentic
+
+    QrGenerateBody:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [identity, batch]
+        walletAddress:
+          type: ["string", "null"]
+        role:
+          type: ["string", "null"]
+        batchId:
+          type: ["string", "null"]
+        label:
+          type: ["string", "null"]
+      required:
+        - type
+
+    QrCodeResponse:
+      type: object
+      properties:
+        qrCodeDataUrl:
+          type: string
+        data:
+          type: string
+        label:
+          type: ["string", "null"]
+      required:
+        - qrCodeDataUrl
+        - data
+
+    SystemStats:
+      type: object
+      properties:
+        totalManufacturers:
+          type: integer
+        totalBatches:
+          type: integer
+        totalTransfers:
+          type: integer
+        totalSold:
+          type: integer
+        totalDistributors:
+          type: integer
+        totalPharmacies:
+          type: integer
+      required:
+        - totalManufacturers
+        - totalBatches
+        - totalTransfers
+        - totalSold
+        - totalDistributors
+        - totalPharmacies

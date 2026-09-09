@@ -1,0 +1,44 @@
+modules = ["nodejs-24"]
+
+[deployment]
+router = "application"
+deploymentTarget = "autoscale"
+
+[deployment.postBuild]
+args = ["pnpm", "store", "prune"]
+env = { "CI" = "true" }
+
+[workflows]
+runButton = "Project"
+
+[agent]
+stack = "PNPM_WORKSPACE"
+expertMode = true
+
+[postMerge]
+path = "scripts/post-merge.sh"
+timeoutMs = 20000
+
+[[ports]]
+localPort = 8080
+externalPort = 8080
+
+[[ports]]
+localPort = 8081
+externalPort = 80
+
+[[ports]]
+localPort = 23498
+externalPort = 3000
+
+[userenv]
+
+[userenv.shared]
+VITE_ALCHEMY_RPC = "https://eth-sepolia.g.alchemy.com/v2/2G4npOjxtth8D8uXgFumw"
+VITE_CONTRACT_ADDRESS = "0x4a801426fe95B3a50897317e65b4513733149e03"
+VITE_PINATA_JWT = "6dd093d9111049df8680"
+VITE_PINATA_GATEWAY = "https://gateway.pinata.cloud/ipfs/"
+ALCHEMY_SEPOLIA_URL = "https://eth-sepolia.g.alchemy.com/v2/2G4npOjxtth8D8uXgFumw"
+ETHERSCAN_API_KEY = "U5YD9GT1CS3XSZUMHAVDH5GJVH42XQH782"
+PINATA_JWT = "6dd093d9111049df8680"
+PINATA_GATEWAY = "https://gateway.pinata.cloud/ipfs"
